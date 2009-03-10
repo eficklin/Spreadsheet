@@ -169,7 +169,6 @@ class Spreadsheet_IndexController extends Omeka_Controller_Action {
 				$next_cell++;
 			}
 		}
-		$this->xls->getActiveSheet()->setCellValue('A' . $next_cell, memory_get_peak_usage());
 		//finishing touch: set active sheet back to 0 so it's active when the use opens the xls file
 		$this->xls->setActiveSheetIndex(0);
 		
