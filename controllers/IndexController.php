@@ -177,6 +177,10 @@ class Spreadsheet_IndexController extends Omeka_Controller_Action {
 		$this->xls_writer->save('php://output');
 	}
 	
+	public function statusAction() {
+		
+	}
+	
 	protected function _cleanHTML($text) {
 		$text = html_entity_decode($text);
 		return strip_tags($text);
