@@ -10,6 +10,12 @@
 
 define('SPREADSHEET_VERSION', '1.0');
 
+define('SPREADSHEET_STATUS_INIT', 1);
+define('SPREADSHEET_STATUS_COMPLETE', 2);
+define('SPREADSHEET_STATUS_PURGED', 3);
+
+define('SPREADSHEET_FILES_DIR', PLUGIN_DIR . '/Spreadsheet/files');
+
 add_plugin_hook('install', 'spreadsheet_install');
 add_plugin_hook('config', 'spreadsheet_config');
 add_plugin_hook('config_form', 'spreadsheet_config_form');
@@ -24,11 +30,13 @@ function spreadsheet_install() {
 	
 	$db = get_db();
 	$db->exec(
-		"CREATE TABLE IF NOT EXISTS `{$db->prefix}spreadsheet` (
+		"CREATE TABLE IF NOT EXISTS `{$db->prefix}spreadsheets` (
 			`id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-			`status` VARCHAR(50),
+			`status` INT,
 			`user_id` INT,
 			`file_name` VARCHAR(255),
+			`items` LONGTEXT,
+			`terms` TEXT,
 			`added` DATETIME,
 			PRIMARY KEY  (`id`)
        ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;"
@@ -36,7 +44,6 @@ function spreadsheet_install() {
 }
 
 function spreadsheet_config() {
-	set_option('spreadsheet_memory_limit', $_POST['spreadsheet_memory_limit']);
 	set_option('spreadsheet_php_path', $_POST['spreadsheet_php_path']);
 }
 
@@ -49,10 +56,6 @@ function spreadsheet_config_form() {
       $lastLineOutput = exec($command, $output, $returnVar);
       $path = $returnVar == 0 ? trim($lastLineOutput) : '';
   }
- 
-  if (!$memoryLimit = get_option('spreadsheet_memory_limit')) {
-      $memoryLimit = ini_get('memory_limit');
-  }
 ?>
   <div class="field">
       <label for="spreadsheet_php_path">Path to PHP-CLI</label>
@@ -62,23 +65,12 @@ function spreadsheet_config_form() {
       4.x for their default PHP-CLI, but many provide an alternative path to a
       PHP-CLI 5 binary. Check with your web host for more information.</p>
   </div>
-  <div class="field">
-      <label for="spreadsheet_memory_limit">Memory Limit</label>
-      <?php echo __v()->formText('spreadsheet_memory_limit', $memoryLimit, null);?>
-      <p class="explanation">Set a high memory limit to avoid memory allocation
-      issues during harvesting. Examples include 128M, 1G, and -1. The available
-      options are K (for Kilobytes), M (for Megabytes) and G (for Gigabytes).
-      Anything else assumes bytes. Set to -1 for an infinite limit. Be advised
-      that many web hosts set a maximum memory limit, so this setting may be
-      ignored if it exceeds the maximum allowable limit. Check with your web host
-      for more information.</p>
-  </div>
 <?php
 }
 
 function spreadsheet_uninstall() {
 	$db = get_db();
-	$db->exec("DROP TABLE IF EXISTS {$db->prefix}spreadsheet");
+	$db->exec("DROP TABLE IF EXISTS {$db->prefix}spreadsheets");
 	delete_option('spreadsheet_version');
 	delete_option('spreadsheet_expiry');
 }
