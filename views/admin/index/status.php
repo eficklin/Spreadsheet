@@ -4,7 +4,7 @@
 <div id="primary">
 	<?php echo flash(); ?>
 	<div id="speadsheet">
-		<p>Large exports may take some time.  If the export you need shows "in-progress", refresh this page periodically until you see "complete". Then you may download your spreadsheet. Your previous exports, if any, are also available to re-download here.</p>
+		<p>Your most recent export is listed first. Large exports may take some time.  If the export you need shows "in-progress", refresh this page periodically until you see "complete". Then you may download your spreadsheet. Your previous exports, if any, are also available to re-download here.</p>
 		<table class="simple">
 			<tr>
 				<th>Date</th>

@@ -19,7 +19,7 @@ class Spreadsheet extends Omeka_Record {
 		$this->user_id = current_user()->id;
 		$this->file_name = "OmekaExport" . time() . ".xls";
 		$this->status = SPREADSHEET_STATUS_INIT;
-		$this->added = date('Y-m-d H:m:s');
+		$this->added = date('Y-m-d H:i:s');
 	}
 	
 	/**
