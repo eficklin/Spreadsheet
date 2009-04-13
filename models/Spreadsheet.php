@@ -12,7 +12,6 @@ class Spreadsheet extends Omeka_Record {
 	public $user_id;
 	public $file_name;
 	public $status;
-	public $items;
 	public $terms;
 	public $added;
 	
