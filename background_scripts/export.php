@@ -1,9 +1,5 @@
 <?php
-//utility function for cleanup
-function cleanHTML($text) {
-	$text = html_entity_decode($text);
-	return strip_tags($text);
-}
+require 'spreadsheet_functions.php';
 
 // Require the core application and plugin files
 $baseDir = str_replace('plugins/Spreadsheet/background_scripts', '', dirname(__FILE__));
@@ -24,6 +20,7 @@ $options = getopt('u:i:');
 $userId = $options['u'];
 $user = $db->getTable('User')->find($userId);
 Omeka_Context::getInstance()->setCurrentUser($user);
+$acl = Omeka_Context::getInstance()->getAcl();
 
 // Get spreadsheet information from DB
 require 'Spreadsheet.php';
@@ -80,7 +77,9 @@ $xls->getActiveSheet()->getStyle($col . $row)->getFont()->setBold(true);
 
 //items worksheet
 $row = 3;
-foreach ($spreadsheet->items as $i) {
+$results = spreadsheet_search($spreadsheet);
+
+foreach ($results as $i) {
 	//set row height to accomodate reference image and longer element texts
 	$xls->getActiveSheet()->getRowDimension($row)->setRowHeight(105);
 		
@@ -144,7 +143,29 @@ foreach ($spreadsheet->items as $i) {
 	$row++;
 }
 
-//finish up spreadsheet
+//add second worksheet to record search terms that produced this result set
+$xls->createSheet();
+$xls->setActiveSheetIndex(1);
+$xls->getActiveSheet()->setTitle('Search Terms');
+$xls->getActiveSheet()->setCellValue('A1', 'Search Terms');
+
+$next_cell = 2;
+$terms = unserialize($spreadsheet->terms);
+foreach ($terms as $k => $v) {
+	if ($k == 'advanced') {
+		foreach($v as $advanced_term) {
+			$xls->getActiveSheet()->setCellValue('A' . $next_cell,
+				$advanced_term['element_id'] . ' ' . $advanced_term['type'] . ' ' . $advanced_term['terms']
+			);
+			$next_cell++; 
+		}
+	} else {
+		$xls->getActiveSheet()->setCellValue('A' . $next_cell, "{$k}: {$v}");
+		$next_cell++;
+	}
+}
+//finishing touch: set active sheet back to 0 so it's active when the use opens the xls file
+$xls->setActiveSheetIndex(0);
 
 //save to disk
 $xls_writer->save(SPREADSHEET_FILES_DIR . "/{$spreadsheet->file_name}");

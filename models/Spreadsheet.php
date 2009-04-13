@@ -13,12 +13,14 @@ class Spreadsheet extends Omeka_Record {
 	public $file_name;
 	public $status;
 	public $items;
+	public $terms;
+	public $added;
 	
-	public function construct($user_id, $file_name, $items, $status = SPREADSHEET_STATUS_INIT) {
-		$this->user_id = $user_id;
-		$this->file_name = $file_name;
-		$this->items = $items;
-		$this->status = $status;
+	public function construct() {
+		$this->user_id = current_user()->id;
+		$this->file_name = "OmekaExport" . time() . ".xls";
+		$this->status = SPREADSHEET_STATUS_INIT;
+		$this->added = date('Y-m-d H:m:s');
 	}
 	
 	/**
@@ -34,7 +36,18 @@ class Spreadsheet extends Omeka_Record {
 	 * @return Array
 	 */
 	public function getUserSpreadsheets() {
-		return $this->findSpreadSheetsByUserId($this->user_id);
+		return $this->findSpreadsheetsByUserId($this->user_id);
+	}
+	
+	/**
+	 * returns path to file or null if file does not exist
+	 * @return String|null
+	 */
+	public function getFilePath() {
+		$path = SPREADSHEET_FILES_DIR . "/" . $this->file_name;
+		if (file_exists($path)) {
+			return $path;
+		}
 	}
 }
 ?>

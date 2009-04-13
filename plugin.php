@@ -13,6 +13,7 @@ define('SPREADSHEET_VERSION', '1.0');
 define('SPREADSHEET_STATUS_INIT', 1);
 define('SPREADSHEET_STATUS_COMPLETE', 2);
 define('SPREADSHEET_STATUS_PURGED', 3);
+define('SPREADSHEET_STATUS_ERROR', 4);
 
 define('SPREADSHEET_FILES_DIR', PLUGIN_DIR . '/Spreadsheet/files');
 
@@ -20,6 +21,7 @@ add_plugin_hook('install', 'spreadsheet_install');
 add_plugin_hook('config', 'spreadsheet_config');
 add_plugin_hook('config_form', 'spreadsheet_config_form');
 add_plugin_hook('uninstall', 'spreadsheet_uninstall');
+add_plugin_hook('admin_append_to_dashboard_primary', 'spreadsheet_dashboard');
 add_plugin_hook('admin_append_to_items_browse_primary', 'spreadsheet_export_link');
 add_plugin_hook('define_routes', 'spreadsheet_routes');
 
@@ -35,7 +37,6 @@ function spreadsheet_install() {
 			`status` INT,
 			`user_id` INT,
 			`file_name` VARCHAR(255),
-			`items` LONGTEXT,
 			`terms` TEXT,
 			`added` DATETIME,
 			PRIMARY KEY  (`id`)
@@ -75,6 +76,14 @@ function spreadsheet_uninstall() {
 	delete_option('spreadsheet_expiry');
 }
 
+function spreadsheet_dashboard() {
+	?>
+	<dt class="spreadsheet"><a href="<?php echo uri('spreadsheet/index/status'); ?>">Spreadsheet Exports</a></dt>
+	<dd class="spreadsheet"></dd>
+	<p>Check the status or re-download an exported spreadsheet. To created an export, do a search then click on "Export results as spreadsheet".</p>
+	<?php
+}
+
 function spreadsheet_export_link($items) {
 	if (isset($_GET['search']) && count($items)) {
 		$params = array();
@@ -94,6 +103,13 @@ function spreadsheet_routes($router) {
 		new Zend_Controller_Router_Route(
 			'spreadsheet/xls', 
 			array('module' => 'spreadsheet', 'controller' => 'index', 'action' => 'xls')
+		)	
+	);
+	$router->addRoute(
+		'spreadsheet_download_route',
+		new Zend_Controller_Router_Route(
+			'spreadsheet/download/:id',
+			array('module' => 'spreadsheet', 'controller' => 'index', 'action' => 'download')
 		)
 	);
 }
