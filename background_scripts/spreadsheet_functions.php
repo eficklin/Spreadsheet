@@ -5,8 +5,14 @@ function cleanHTML($text) {
 	return strip_tags($text);
 }
 
-//create our own search function
-function spreadsheet_search($spreadsheet) {   
+/**
+ * our own search function, don't like the duplication, however
+ * @param $spreadsheet Spreadsheet model class storing export details
+ * @param $chunk integer result sets need to be broken down to avoid memory limit failure 
+ * @return Array of Items
+ */
+
+function spreadsheet_search($spreadsheet, $chunk = 1) {   
   global $db;
   global $acl;
   global $user;
@@ -83,8 +89,10 @@ function spreadsheet_search($spreadsheet) {
 	}
 	
 	$params = array_merge($perms, $filter, $order);
-	//TODO: fix temporary hack? pagination in this context?
-	$params['per_page'] = $terms['per_page'];  
+	//using built-in pagination functions to get results by chunk (like a page)
+	//to avoid hitting a memory wall by getting entire set all at once
+	$params['per_page'] = 10;
+	$params['page'] = $chunk;  
 	$items = $itemTable->findBy($params);
 	return $items;
 }

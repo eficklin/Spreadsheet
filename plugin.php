@@ -91,7 +91,7 @@ function spreadsheet_export_link($items) {
 			$params[$k] = $v;
 			//set per_page query param here to force a complete (i.e. unpaginated) list
 			//use the total_results count set in the Registry by the SearchItems helper
-			$params['per_page'] = ZEND_REGISTRY::get('total_results');
+			$params['hits'] = ZEND_REGISTRY::get('total_results');
 		}
 		echo "<a href='" . uri('spreadsheet/xls', $params) ."'>Export results as spreadsheet</a>";
 	}
