@@ -147,7 +147,7 @@ for ($chunk = 1; $chunk <= $chunks; $chunk++) {
 		}
 		$xls->getActiveSheet()->setCellValue($col . $row, $metatexts);
 		$row++;
-		unset($i);
+		release_object($i);
 	}
 }
 
