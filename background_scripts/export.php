@@ -43,26 +43,39 @@ $xls_writer = PHPExcel_IOFactory::createWriter($xls, 'Excel5');
 $xls->setActiveSheetIndex(0);
 $xls->getActiveSheet()->getDefaultStyle()->getFont()->setName('Arial');
 $xls->getActiveSheet()->setTitle('Items');
-$xls->getActiveSheet()->setCellValue('A1', "Omeka Export -- " . date('F j, Y'));
-$xls->getActiveSheet()->getStyle('A1')->getFont()->setBold(true);
 
 //column headings
 $set = new ElementSet();
 $set->name = 'Dublin Core';
 $elements = $set->getElements();
 
-$col = 'A';
-$row = 2;
+$xls->getActiveSheet()->setCellValue('A1', 'Omeka ID');
+$xls->getActiveSheet()->getStyle('A1')->getFont()->setBold(true);
+$xls->getActiveSheet()->getColumnDimension('A')->setAutoSize(true);
+
+$xls->getActiveSheet()->setCellValue('B1', 'Title');
+$xls->getActiveSheet()->getStyle('B1')->getFont()->setBold(true);
+$xls->getActiveSheet()->getColumnDimension('B')->setAutoSize(true);
+
+$xls->getActiveSheet()->setCellValue('C1', 'Subject');
+$xls->getActiveSheet()->getStyle('C1')->getFont()->setBold(true);
+$xls->getActiveSheet()->getColumnDimension('C')->setAutoSize(true);
+
+$xls->getActiveSheet()->setCellValue('D1', 'Reference Image');
+$xls->getActiveSheet()->getStyle('D1')->getFont()->setBold(true);
+$xls->getActiveSheet()->getColumnDimension('D')->setWidth(35);
+
+$col = 'E';
+$row = 1;
 foreach ($elements as $e) {
+	if ($e->name == 'Title' || $e->name == 'Subject')
+		continue;
+		
 	$xls->getActiveSheet()->SetCellValue($col . $row, $e->name);
 	$xls->getActiveSheet()->getStyle($col . $row)->getFont()->setBold(true);
 	$xls->getActiveSheet()->getColumnDimension($col)->setAutoSize(true);
 	$col = chr(ord($col) + 1);
 }
-
-$xls->getActiveSheet()->setCellValue($col . $row, "Reference Image");
-$xls->getActiveSheet()->getStyle($col . $row)->getFont()->setBold(true);
-$xls->getActiveSheet()->getColumnDimension($col)->setWidth(35);
 
 $col = chr(ord($col) + 1);
 $xls->getActiveSheet()->setCellValue($col . $row, "Collection");
@@ -77,78 +90,112 @@ $xls->getActiveSheet()->setCellValue($col . $row, "Item Type Metadata");
 $xls->getActiveSheet()->getStyle($col . $row)->getFont()->setBold(true);
 
 //items worksheet
-$row = 3;
-//grab results one chunk at a time to avoid memory issues
-$hits = (int) $terms['hits'];
-$chunks = ceil($hits/10);
+$row = 2;
 
-for ($chunk = 1; $chunk <= $chunks; $chunk++) {
-	$results = spreadsheet_search($spreadsheet, $chunk);
+$results = spreadsheet_search($spreadsheet, $chunk);
 
-	foreach ($results as $i) {
-		//set row height to accomodate reference image and longer element texts
-		$xls->getActiveSheet()->getRowDimension($row)->setRowHeight(105);
+foreach ($results as $i) {
+	//set row height to accomodate reference image and longer element texts
+	$xls->getActiveSheet()->getRowDimension($row)->setRowHeight(105);
+	
+	//omkea id
+	$xls->getActiveSheet()->setCellValue('A' . $row, $i->id);
+	$xls->getActiveSheet()->getStyle('A' . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
+	
+	//dublin core elements
+	//title and subject first (cols b, c)
+	$texts = $i->getElementTextsByElementNameAndSetName('Title', 'Dublin Core');
+	$texts_to_join = array();
+	if (count($texts)) {
+		foreach ($texts as $t) {
+			$texts_to_join[] = $t->html ? cleanHTML($t->text) : $t->text;
+		}
+	}
+	$xls->getActiveSheet()->SetCellValueExplicit('B' . $row, xlsLineBreaks(implode('; ', $texts_to_join)), PHPExcel_Cell_DataType::TYPE_STRING);
+	$xls->getActiveSheet()->getStyle('B' . $row)->getAlignment()->setWrapText(true);
+	$xls->getActiveSheet()->getStyle('B' . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
+	
+	$texts = $i->getElementTextsByElementNameAndSetName('Subject', 'Dublin Core');
+	$texts_to_join = array();
+	if (count($texts)) {
+		foreach ($texts as $t) {
+			$texts_to_join[] = $t->html ? cleanHTML($t->text) : $t->text;
+		}
+	}
+	$xls->getActiveSheet()->SetCellValueExplicit('C' . $row, xlsLineBreaks(implode('; ', $texts_to_join)), PHPExcel_Cell_DataType::TYPE_STRING);
+	$xls->getActiveSheet()->getStyle('C' . $row)->getAlignment()->setWrapText(true);
+	$xls->getActiveSheet()->getStyle('C' . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
+	
+	//image (col d): thumbnail image if available
+	$files = $i->getFiles();
+	if (count($files) && $files[0]->hasThumbnail()) {
+		$img = new PHPExcel_Worksheet_Drawing();
+		$img->setName('Reference Image');
+		$img->setDescription('Reference Image');
+		$img->setPath($files[0]->getPath('thumbnail'));
+		$img->setHeight(100);
+		$img->setOffsetX(5);
+		$img->setOffsetY(5);
+		$img->setCoordinates('D' . $row);
+		$img->setWorksheet($xls->getActiveSheet());
+	} else {
+		$xls->getActiveSheet()->setCellValue('D' . $row, "[no image available]");
+		$xls->getActiveSheet()->getStyle('D' . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
+	}
+	release_object($files);
+	
+	//remaining dc elements (cols e and beyond)
+	$col = 'E';
+	foreach ($elements as $e) {
+		if ($e->name == "Title" || $e->name == "Subject")
+			continue;
+			
+		$texts = $i->getElementTextsByElementNameAndSetName($e->name, 'Dublin Core');
+		$texts_to_join = array();
+		if (count($texts)) {
+			foreach ($texts as $t) {
+				$texts_to_join[] = $t->html ? cleanHTML($t->text) : $t->text;
+			}
+		}
+		$xls->getActiveSheet()->SetCellValueExplicit($col . $row, xlsLineBreaks(implode('; ', $texts_to_join)), PHPExcel_Cell_DataType::TYPE_STRING);
+		$xls->getActiveSheet()->getStyle($col . $row)->getAlignment()->setWrapText(true);
+		$xls->getActiveSheet()->getStyle($col . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
+		$col = chr(ord($col) + 1);
+	}
 
-		//dublin core elements
-		$col = 'A';
-		foreach ($elements as $e) {
-			$texts = $i->getElementTextsByElementNameAndSetName($e->name, 'Dublin Core');
+	//collection
+	$col = chr(ord($col) + 1);
+	$xls->getActiveSheet()->setCellValue($col . $row, $i->getCollection()->name);
+	$xls->getActiveSheet()->getStyle($col . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
+
+	//item type
+	$col = chr(ord($col) + 1);
+	$xls->getActiveSheet()->setCellValue($col . $row, $i->getItemType()->name);
+	$xls->getActiveSheet()->getStyle($col . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
+
+	//collect Item Type Metadata and join into single string
+	$col = chr(ord($col) + 1);
+	$metatexts = "";
+	$metadata = $i->getItemTypeElements();
+	if (count($metadata)) {
+		foreach ($metadata as $e) {
+			$texts = $i->getElementTextsByElementNameAndSetName($e->name, 'Item Type Metadata');
 			$texts_to_join = array();
 			if (count($texts)) {
+				$metatexts .= $e->name . ": ";
 				foreach ($texts as $t) {
 					$texts_to_join[] = $t->html ? cleanHTML($t->text) : $t->text;
 				}
-			}
-			$xls->getActiveSheet()->SetCellValue($col . $row, implode('; ', $texts_to_join));
-			$xls->getActiveSheet()->getStyle($col . $row)->getAlignment()->setWrapText(true);
-			$col = chr(ord($col) + 1);
-		}
-
-		//insert thumbnail image if available
-		$files = $i->getFiles();
-		if (count($files) && $files[0]->hasThumbnail()) {
-			$img = new PHPExcel_Worksheet_Drawing();
-			$img->setName('Reference Image');
-			$img->setDescription('Reference Image');
-			$img->setPath($files[0]->getPath('thumbnail'));
-			$img->setHeight(100);
-			$img->setOffsetX(5);
-			$img->setOffsetY(5);
-			$img->setCoordinates($col . $row);
-			$img->setWorksheet($xls->getActiveSheet());
-		} else {
-			$xls->getActiveSheet()->setCellValue($col . $row, "[no image available]");
-		}
-
-		//collection
-		$col = chr(ord($col) + 1);
-		$xls->getActiveSheet()->setCellValue($col . $row, $i->getCollection()->name);
-
-		//item type
-		$col = chr(ord($col) + 1);
-		$xls->getActiveSheet()->setCellValue($col . $row, $i->getItemType()->name);
-
-		//collect Item Type Metadata and join into single string
-		$col = chr(ord($col) + 1);
-		$metatexts = "";
-		$metadata = $i->getItemTypeElements();
-		if (count($metadata)) {
-			foreach ($metadata as $e) {
-				$texts = $i->getElementTextsByElementNameAndSetName($e->name, 'Item Type Metadata');
-				$texts_to_join = array();
-				if (count($texts)) {
-					$metatexts .= $e->name . ": ";
-					foreach ($texts as $t) {
-						$texts_to_join[] = $t->html ? cleanHTML($t->text) : $t->text;
-					}
-					$metatexts .= implode(", ", $texts_to_join) . "; ";
-				}
+				$metatexts .= implode(", ", $texts_to_join) . "; ";
 			}
 		}
-		$xls->getActiveSheet()->setCellValue($col . $row, $metatexts);
-		$row++;
-		release_object($i);
+		release_object($metadata);
 	}
+	$xls->getActiveSheet()->setCellValue($col . $row, $metatexts);
+	$xls->getActiveSheet()->SetCellValueExplicit($col . $row, implode('; ', $texts_to_join), PHPExcel_Cell_DataType::TYPE_STRING);
+	$xls->getActiveSheet()->getStyle($col . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
+	$row++;
+	release_object($i);
 }
 
 //add second worksheet to record search terms that produced this result set

@@ -5,6 +5,11 @@ function cleanHTML($text) {
 	return strip_tags($text);
 }
 
+//utility function to format linebreaks correctly for Excel General and Text cells
+function xlsLineBreaks($str) {
+	return str_replace(chr(13), '', $str);
+}
+
 /**
  * our own search function, don't like the duplication, however
  * @param $spreadsheet Spreadsheet model class storing export details
@@ -89,10 +94,6 @@ function spreadsheet_search($spreadsheet, $chunk = 1) {
 	}
 	
 	$params = array_merge($perms, $filter, $order);
-	//using built-in pagination functions to get results by chunk (like a page)
-	//to avoid hitting a memory wall by getting entire set all at once
-	$params['per_page'] = 10;
-	$params['page'] = $chunk;  
 	$items = $itemTable->findBy($params);
 	return $items;
 }
