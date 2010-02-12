@@ -68,8 +68,9 @@ $col_headers = array(
 		);
 
 foreach ($col_headers as $k => $v) {
-	$xls->getActiveSheet()->setCellValue($k, $v);
-	$xls->getActiveSheet()->getStyle($k)->getFong()->setBold(true);
+	$xls->getActiveSheet()->setCellValue($k . '1', $v);
+	$xls->getActiveSheet()->getStyle($k . '1')->getFont()->setBold(true);
+	$xls->getActiveSheet()->getColumnDimension($k)->setAutoSize(true);
 }
 
 //items worksheet
@@ -81,83 +82,7 @@ foreach ($results as $i) {
 	//set row height to accomodate reference image and longer element texts
 	$xls->getActiveSheet()->getRowDimension($row)->setRowHeight(105);
 	
-	//omkea id
-	$xls->getActiveSheet()->setCellValue('A' . $row, $i->id);
-	$xls->getActiveSheet()->getStyle('A' . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
-	
-	//dublin core elements
-	//title and subject first (cols b, c)
-	$texts = $i->getElementTextsByElementNameAndSetName('Title', 'Dublin Core');
-	$texts_to_join = array();
-	if (count($texts)) {
-		foreach ($texts as $t) {
-			$texts_to_join[] = $t->html ? cleanHTML($t->text) : $t->text;
-		}
-	}
-	$xls->getActiveSheet()->SetCellValueExplicit('B' . $row, xlsLineBreaks(implode('; ', $texts_to_join)), PHPExcel_Cell_DataType::TYPE_STRING);
-	$xls->getActiveSheet()->getStyle('B' . $row)->getAlignment()->setWrapText(true);
-	$xls->getActiveSheet()->getStyle('B' . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
-	
-	$texts = $i->getElementTextsByElementNameAndSetName('Subject', 'Dublin Core');
-	$texts_to_join = array();
-	if (count($texts)) {
-		foreach ($texts as $t) {
-			$texts_to_join[] = $t->html ? cleanHTML($t->text) : $t->text;
-		}
-	}
-	$xls->getActiveSheet()->SetCellValueExplicit('C' . $row, xlsLineBreaks(implode('; ', $texts_to_join)), PHPExcel_Cell_DataType::TYPE_STRING);
-	$xls->getActiveSheet()->getStyle('C' . $row)->getAlignment()->setWrapText(true);
-	$xls->getActiveSheet()->getStyle('C' . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
-	
-	//image (col d): thumbnail image if available
-	$files = $i->getFiles();
-	if (count($files) && $files[0]->hasThumbnail()) {
-		$img = new PHPExcel_Worksheet_Drawing();
-		$img->setName('Reference Image');
-		$img->setDescription('Reference Image');
-		$img->setPath($files[0]->getPath('thumbnail'));
-		$img->setHeight(100);
-		$img->setOffsetX(5);
-		$img->setOffsetY(5);
-		$img->setCoordinates('D' . $row);
-		$img->setWorksheet($xls->getActiveSheet());
-	} else {
-		$xls->getActiveSheet()->setCellValue('D' . $row, "[no image available]");
-		$xls->getActiveSheet()->getStyle('D' . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
-	}
-	release_object($files);
-	
-	//remaining dc elements (cols e and beyond)
-	$col = 'E';
-	foreach ($elements as $e) {
-		if ($e->name == "Title" || $e->name == "Subject")
-			continue;
-			
-		$texts = $i->getElementTextsByElementNameAndSetName($e->name, 'Dublin Core');
-		$texts_to_join = array();
-		if (count($texts)) {
-			foreach ($texts as $t) {
-				$texts_to_join[] = $t->html ? cleanHTML($t->text) : $t->text;
-			}
-		}
-		$xls->getActiveSheet()->SetCellValueExplicit($col . $row, xlsLineBreaks(implode('; ', $texts_to_join)), PHPExcel_Cell_DataType::TYPE_STRING);
-		$xls->getActiveSheet()->getStyle($col . $row)->getAlignment()->setWrapText(true);
-		$xls->getActiveSheet()->getStyle($col . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
-		$col = chr(ord($col) + 1);
-	}
-
-	//collection
-	$col = chr(ord($col) + 1);
-	$xls->getActiveSheet()->setCellValue($col . $row, $i->getCollection()->name);
-	$xls->getActiveSheet()->getStyle($col . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
-
-	//item type
-	$col = chr(ord($col) + 1);
-	$xls->getActiveSheet()->setCellValue($col . $row, $i->getItemType()->name);
-	$xls->getActiveSheet()->getStyle($col . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
-
-	//collect Item Type Metadata and join into single string
-	$col = chr(ord($col) + 1);
+	//col A: collect Item Type Metadata and join into single string
 	$metatexts = "";
 	$metadata = $i->getItemTypeElements();
 	if (count($metadata)) {
@@ -174,9 +99,57 @@ foreach ($results as $i) {
 		}
 		release_object($metadata);
 	}
-	$xls->getActiveSheet()->setCellValue($col . $row, $metatexts);
-	$xls->getActiveSheet()->SetCellValueExplicit($col . $row, implode('; ', $texts_to_join), PHPExcel_Cell_DataType::TYPE_STRING);
-	$xls->getActiveSheet()->getStyle($col . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
+	
+	$xls->getActiveSheet()->SetCellValueExplicit('A' . $row, implode('; ', $texts_to_join), PHPExcel_Cell_DataType::TYPE_STRING);
+	$xls->getActiveSheet()->getStyle('A' . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
+	
+	$dc_cols = array(
+		"D" => "Title",
+		"E" => "Description",
+		"F" => "Source",
+		"H" => "Format"
+	);
+	
+	foreach ($dc_cols as $k => $v) {
+		$texts = $i->getElementTextsByElementNameAndSetName($v, 'Dublin Core');
+		$texts_to_join = array();
+		if (count($texts)) {
+			foreach ($texts as $t) {
+				$texts_to_join[] = $t->html ? cleanHTML($t->text) : $t->text;
+			}
+		}
+		$xls->getActiveSheet()->SetCellValueExplicit($k . $row, xlsLineBreaks(implode('; ', $texts_to_join)), PHPExcel_Cell_DataType::TYPE_STRING);
+		$xls->getActiveSheet()->getStyle($k . $row)->getAlignment()->setWrapText(true);
+		$xls->getActiveSheet()->getStyle($k . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
+	}
+	
+	//omeka id
+	$xls->getActiveSheet()->setCellValue('K' . $row, $i->id);
+	$xls->getActiveSheet()->getStyle('K' . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
+	
+	//image
+	$files = $i->getFiles();
+	if (count($files) && $files[0]->hasThumbnail()) {
+		$img = new PHPExcel_Worksheet_Drawing();
+		$img->setName('Reference Image');
+		$img->setDescription('Reference Image');
+		$img->setPath($files[0]->getPath('thumbnail'));
+		$img->setHeight(100);
+		$img->setOffsetX(5);
+		$img->setOffsetY(5);
+		$img->setCoordinates('J' . $row);
+		$img->setWorksheet($xls->getActiveSheet());
+	} else {
+		$xls->getActiveSheet()->setCellValue('J' . $row, "[no image available]");
+		$xls->getActiveSheet()->getStyle('J' . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
+	}
+	release_object($files);
+	
+	//item type
+	$col = chr(ord($col) + 1);
+	$xls->getActiveSheet()->setCellValue('G' . $row, $i->getItemType()->name);
+	$xls->getActiveSheet()->getStyle('G' . $row)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_TOP);
+	
 	$row++;
 	release_object($i);
 }
