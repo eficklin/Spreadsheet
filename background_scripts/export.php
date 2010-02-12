@@ -50,7 +50,7 @@ $set->name = 'Dublin Core';
 $elements = $set->getElements();
 
 $col_headers = array(
-			"A" => "Item Type Meta Data",
+			"A" => "Gallery",
 			"B" => "Info #1",
 			"C" => "Info #2",
 			"D" => "Title",
