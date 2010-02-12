@@ -49,45 +49,28 @@ $set = new ElementSet();
 $set->name = 'Dublin Core';
 $elements = $set->getElements();
 
-$xls->getActiveSheet()->setCellValue('A1', 'Omeka ID');
-$xls->getActiveSheet()->getStyle('A1')->getFont()->setBold(true);
-$xls->getActiveSheet()->getColumnDimension('A')->setAutoSize(true);
+$col_headers = array(
+			"A" => "Item Type Meta Data",
+			"B" => "Info #1",
+			"C" => "Info #2",
+			"D" => "Title",
+			"E" => "Description",
+			"F" => "Source",
+			"G" => "Item Type",
+			"H" => "Format",
+			"I" => "Presentation/mounting",
+			"J" => "Reference Image",
+			"K" => "Omeka ID",
+			"L" => "General Notes",
+			"M" => "Source Notes",
+			"N" => "Repro Needed",
+			"O" => "Repro Delivered"
+		);
 
-$xls->getActiveSheet()->setCellValue('B1', 'Title');
-$xls->getActiveSheet()->getStyle('B1')->getFont()->setBold(true);
-$xls->getActiveSheet()->getColumnDimension('B')->setAutoSize(true);
-
-$xls->getActiveSheet()->setCellValue('C1', 'Subject');
-$xls->getActiveSheet()->getStyle('C1')->getFont()->setBold(true);
-$xls->getActiveSheet()->getColumnDimension('C')->setAutoSize(true);
-
-$xls->getActiveSheet()->setCellValue('D1', 'Reference Image');
-$xls->getActiveSheet()->getStyle('D1')->getFont()->setBold(true);
-$xls->getActiveSheet()->getColumnDimension('D')->setWidth(35);
-
-$col = 'E';
-$row = 1;
-foreach ($elements as $e) {
-	if ($e->name == 'Title' || $e->name == 'Subject')
-		continue;
-		
-	$xls->getActiveSheet()->SetCellValue($col . $row, $e->name);
-	$xls->getActiveSheet()->getStyle($col . $row)->getFont()->setBold(true);
-	$xls->getActiveSheet()->getColumnDimension($col)->setAutoSize(true);
-	$col = chr(ord($col) + 1);
+foreach ($col_headers as $k => $v) {
+	$xls->getActiveSheet()->setCellValue($k, $v);
+	$xls->getActiveSheet()->getStyle($k)->getFong()->setBold(true);
 }
-
-$col = chr(ord($col) + 1);
-$xls->getActiveSheet()->setCellValue($col . $row, "Collection");
-$xls->getActiveSheet()->getStyle($col . $row)->getFont()->setBold(true);
-
-$col = chr(ord($col) + 1);
-$xls->getActiveSheet()->setCellValue($col . $row, "Item Type");
-$xls->getActiveSheet()->getStyle($col . $row)->getFont()->setBold(true);
-
-$col = chr(ord($col) + 1);
-$xls->getActiveSheet()->setCellValue($col . $row, "Item Type Metadata");
-$xls->getActiveSheet()->getStyle($col . $row)->getFont()->setBold(true);
 
 //items worksheet
 $row = 2;
