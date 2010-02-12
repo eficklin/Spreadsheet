@@ -47,7 +47,7 @@ class Spreadsheet_IndexController extends Omeka_Controller_Action {
 			//no view needed, will force download of spreadsheet
 			$this->_helper->viewRenderer->setNoRender();
 			header('Content-Type: application/vnd.ms-excel');
-			header("Content-Disposition: attachement;filename='{$s->file_name}'");
+			header("Content-Disposition: attachement;filename={$s->file_name}");
 			header('Content-Length: ' . filesize($s->getFilePath()));
 			readfile($s->getFilePath());
 			return;
